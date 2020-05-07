@@ -19,20 +19,13 @@ module.exports = async (req, res) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
     // Create Email
-    // const email = {
-    //     to: process.env.DESTINATION_EMAIL,
-    //     from: `${fromAddress}`,
-    //     subject: `${subject}`,
-    //     text: `${body}`,
-    //     html: `${html}`,
-    // };
     const email = {
         to: process.env.TO_EMAIL_ADDRESS,
-        from: 'test@example.com',
-        subject: 'Sending with SendGrid is Fun',
-        text: 'and easy to do anywhere, even with Node.js',
-        html: '<strong>and easy to do anywhere, even with Node.js</strong>',
-      };
+        from: process.env.FROM_EMAIL_ADDRESS,
+        subject: `${subject}`,
+        text: `${body}`,
+        html: `${html}`,
+    };
 
     //Send Email
     sgResp = sgMail.send(email)
