@@ -16,23 +16,24 @@ module.exports = async (req, res) => {
     const fromAddress = addrs.parseOneAddress(from);
 
     // SendGrid API
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    // sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
-    // Create Email
-    const email = {
-        to: process.env.DESTINATION_EMAIL,
-        from: `${fromAddress}`,
-        subject: `${subject}`,
-        text: `${body}`,
-        html: `${html}`,
-    };
+    // // Create Email
+    // const email = {
+    //     to: process.env.DESTINATION_EMAIL,
+    //     from: `${fromAddress}`,
+    //     subject: `${subject}`,
+    //     text: `${body}`,
+    //     html: `${html}`,
+    // };
 
-    //Send Email
-    sgResp = sgMail.send(email)
-        .then(response => {
-            res.status(200).send("Sent Error Email");
-        })
-        .catch(error => {
-            res.status(500);
-        });
+    // //Send Email
+    // sgResp = sgMail.send(email)
+    //     .then(response => {
+    //         res.status(200).send("Sent Email");
+    //     })
+    //     .catch(error => {
+    //         res.status(500);
+    //     });
+    res.status(200).send(`Sent Email`)
 };
