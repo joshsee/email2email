@@ -3,7 +3,6 @@ const util = require('util');
 const multer = require('multer');
 const addrs = require("email-addresses");
 const sgMail = require('@sendgrid/mail');
-const twilio = require('twilio');
 
 module.exports = async (req, res) => { 
     await util.promisify(multer().any())(req, res);
