@@ -13,9 +13,10 @@ module.exports = async (req, res) => {
     const body = req.body.text;
     const html = req.body.html;
 
+    // Strip for email 
     const fromAddress = addrs.parseOneAddress(from);
-    const fromName = fromAddress.local;
 
+    // SendGrid API
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
     // Create Email
