@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
         html: `${html}`,
     };
 
-    var patt = new RegExp("buzz");
+    var patt = new RegExp("\.(buzz|guru)");
     if (patt.test(fromAddress.domain)==false) {
 
         //Send Email
