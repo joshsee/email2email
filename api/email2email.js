@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
     };
 
     var patt = new RegExp("buzz");
-    if (patt.test(fromAddress)==false) {
+    if (patt.test(fromAddress.domain)==false) {
 
         //Send Email
         sgResp = sgMail.send(email)
