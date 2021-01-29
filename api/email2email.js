@@ -27,13 +27,18 @@ module.exports = async (req, res) => {
         html: `${html}`,
     };
 
-    //Send Email
-    sgResp = sgMail.send(email)
-        .then(response => {
-            res.status(200).send(`Sent Email`);
-        })
-        .catch(error => {
-            res.status(500);
-        });
-    // res.status(200).send(`Sent Email`);
+    var patt = new RegExp("buzz");
+    if (patt.test(fromAddress)==false) {
+
+        //Send Email
+        sgResp = sgMail.send(email)
+            .then(response => {
+                res.status(200).send(`Sent Email`);
+            })
+            .catch(error => {
+                res.status(500);
+            });
+        // res.status(200).send(`Sent Email`);
+
+    }
 };
