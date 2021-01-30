@@ -39,6 +39,6 @@ module.exports = async (req, res) => {
             });
         // res.status(200).send(`Sent Email`);
     } else {
-        res.status(200)
+        res.status(200).send(`Wont Sent Email`);
     }
 };
