@@ -29,7 +29,6 @@ module.exports = async (req, res) => {
 
     var patt = new RegExp("\.(buzz|guru)");
     if (patt.test(fromAddress.domain)==false) {
-
         //Send Email
         sgResp = sgMail.send(email)
             .then(response => {
@@ -39,6 +38,7 @@ module.exports = async (req, res) => {
                 res.status(500);
             });
         // res.status(200).send(`Sent Email`);
-
+    } else {
+        res.status(200)
     }
 };
