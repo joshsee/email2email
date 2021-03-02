@@ -22,12 +22,12 @@ module.exports = async (req, res) => {
     const email = {
         to: process.env.TO_EMAIL_ADDRESS,
         from: process.env.FROM_EMAIL_ADDRESS,
-        subject: `${subject} ${fromAddress.domain}`,
+        subject: `${subject} [${fromAddress.domain}]`,
         text: `${body}`,
         html: `${html}`,
     };
 
-    var patt = new RegExp("\.(buzz|guru|cyou|biz)");
+    var patt = new RegExp("\.(buzz|guru|cyou|biz|live)");
     if (patt.test(fromAddress.domain)==false) {
         //Send Email
         sgResp = sgMail.send(email)
