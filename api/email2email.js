@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
         html: `${html}`,
     };
 
-    var patt = new RegExp("\.(buzz|guru|cyou|biz|live|co|us|today)");
+    var patt = new RegExp("(\.buzz|\.guru|\.cyou|\.biz|\.live|\.co|\.us|\.today)");
     if (patt.test(fromAddress.domain)==false) {
         //Send Email
         sgResp = sgMail.send(email)
