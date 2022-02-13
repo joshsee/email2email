@@ -1,7 +1,7 @@
 {
   "name": "email2email",
   "version": "1.0.0",
-  "description": "",
+  "description": "email2email",
   "main": "api/index.js",
   "dependencies": {
     "@sendgrid/mail": "^7.4.2",
