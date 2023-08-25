@@ -8,13 +8,14 @@ module.exports = async (req, res) => {
     await util.promisify(multer().any())(req, res);
 
     const from = req.body.from;
-    const toAddress = req.body.to;
+    const to = req.body.to;
     const subject = req.body.subject;
     const body = req.body.text;
     const html = req.body.html;
 
     // Strip for email 
     const fromAddress = addrs.parseOneAddress(from);
+    const toAddress = addrs.parseOneAddress(to);
 
     // SendGrid API
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -22,8 +23,8 @@ module.exports = async (req, res) => {
     // Create Email
     const email = {
         to: process.env.TO_EMAIL_ADDRESS,
-        from: toAddress,
-        subject: `${subject} [${fromAddress.domain}] [${toAddress}]`,
+        from: toAddress.address,
+        subject: `${subject} [${fromAddress.domain}] [${toAddress.address}]`,
         text: `${body}`,
         html: `${html}`,
     };
