@@ -20,6 +20,15 @@ module.exports = async (req, res) => {
     // SendGrid API
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
+    // Create Email
+    const email = {
+        to: process.env.TO_EMAIL_ADDRESS,
+        from: toAddress.address,
+        subject: `${subject} [${fromAddress.domain}]`,
+        text: `${body}`,
+        html: `${html}`,
+    };
+
     if (req.body.attachments>0){
 
         // Create Email with attachment
@@ -48,16 +57,7 @@ module.exports = async (req, res) => {
             attachments: attachmentsArray,
         };
 
-    } else {
-        // Create Email
-        const email = {
-            to: process.env.TO_EMAIL_ADDRESS,
-            from: toAddress.address,
-            subject: `${subject} [${fromAddress.domain}]`,
-            text: `${body}`,
-            html: `${html}`,
-        };
-    }
+    } 
 
     var patt = new RegExp("\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za.com|ru.com|sa.com|click)$");
     if (patt.test(fromAddress.domain)==false) {
