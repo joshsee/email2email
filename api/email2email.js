@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
             
             const attachmentNo = `${'attachment' + i}`;
             const attachmentContent = {
-                content: req.files[attachmentNo],
+                content: req.files[attachmentNo][0],
                 filename: attachmentInfo[attachmentNo].filename,
                 type: attachmentInfo[attachmentNo].type,
                 disposition: "attachment"
