@@ -53,7 +53,7 @@ module.exports = async (req, res) => {
             subject: `${subject} [${fromAddress.domain}]`,
             text: `${body}`,
             html: `${html}`,
-            attachments: attachmentsArray
+            attachments: attachmentsArray,
         };
          // Create Email
         // const email = {
