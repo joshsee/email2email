@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
     // Create Email
-    const email = {}
+    var email = {}
     email = {
         to: process.env.TO_EMAIL_ADDRESS,
         from: toAddress.address,
