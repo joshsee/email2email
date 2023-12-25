@@ -21,8 +21,7 @@ module.exports = async (req, res) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
     // Create Email
-    var email = {}
-    email = {
+    const email = {
         to: process.env.TO_EMAIL_ADDRESS,
         from: toAddress.address,
         subject: `${subject} [${fromAddress.domain}]`,
@@ -49,7 +48,7 @@ module.exports = async (req, res) => {
         }
 
         //Create Email with attachment
-        email = {
+        const emailAttach = {
             to: process.env.TO_EMAIL_ADDRESS,
             from: toAddress.address,
             subject: `${subject} attach[${fromAddress.domain}]`,
@@ -62,15 +61,26 @@ module.exports = async (req, res) => {
 
     var patt = new RegExp("\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za.com|ru.com|sa.com|click)$");
     if (patt.test(fromAddress.domain)==false) {
-        //Send Email
-        sgResp = sgMail.send(email)
-            .then(response => {
-                res.status(200).send(`Sent Email`);
-            })
-            .catch(error => {
-                res.status(500);
-            });
-        // res.status(200).send(`Sent Email`);
+        if (req.body.attachments>0){
+            //Send Email Attach
+            sgResp = sgMail.send(emailAttach)
+                .then(response => {
+                    res.status(200).send(`Sent Email Attach`);
+                })
+                .catch(error => {
+                    res.status(500);
+                });            
+        } else {
+            //Send Email
+            sgResp = sgMail.send(email)
+                .then(response => {
+                    res.status(200).send(`Sent Email`);
+                })
+                .catch(error => {
+                    res.status(500);
+                });
+            // res.status(200).send(`Sent Email`);
+        }    
     } else {
         res.status(200).send(`Wont Sent Email`);
     }
