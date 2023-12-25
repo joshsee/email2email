@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
     } else {
         // Create Email with attachment
         // const attachmentInfo = JSON.parse(req.body.attachment-info);
-        console.info(req.body.attachment-info)
+        console.info(req.body);
 
         // let attachmentsArray = [];
         // for (let i = 1; i <= req.body.attachments; i++) {
