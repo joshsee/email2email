@@ -39,7 +39,7 @@ module.exports = async (req, res) => {
             
             const attachmentNo = `${'attachment' + i}`;
             const attachmentContent = {
-                content: req.files[attachmentNo].toString("base64"),
+                content: req.files[attachmentNo],
                 filename: attachmentInfo[attachmentNo].filename,
                 type: attachmentInfo[attachmentNo].type,
                 disposition: "attachment"
