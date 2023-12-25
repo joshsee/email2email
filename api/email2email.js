@@ -31,31 +31,32 @@ module.exports = async (req, res) => {
         };
     } else {
         // Create Email with attachment
-        const attachmentInfo = JSON.parse(req.body.attachment-info);
+        // const attachmentInfo = JSON.parse(req.body.attachment-info);
+        console.info(req.body.attachment-info)
 
-        let attachmentsArray = [];
-        for (let i = 1; i <= req.body.attachments; i++) {
+        // let attachmentsArray = [];
+        // for (let i = 1; i <= req.body.attachments; i++) {
             
-            const attachmentNo = `${'attachment' + i}`; 
-            const attachmentContent = {
-                content: req.file[attachmentNo],
-                filename: attachmentInfo.attachmentNo.filename,
-                type: attachmentInfo.attachmentNo.type,
-                content_id: attachmentInfo.attachmentNo.content-id,
-                disposition: "attachment"
-            }
-            attachmentsArray.push(attachmentContent);
-        }
+        //     const attachmentNo = `${'attachment' + i}`; 
+        //     const attachmentContent = {
+        //         content: req.file[attachmentNo],
+        //         filename: attachmentInfo.attachmentNo.filename,
+        //         type: attachmentInfo.attachmentNo.type,
+        //         content_id: attachmentInfo.attachmentNo.content-id,
+        //         disposition: "attachment"
+        //     }
+        //     attachmentsArray.push(attachmentContent);
+        // }
 
         // Create Email with attachment
-        const email = {
-            to: process.env.TO_EMAIL_ADDRESS,
-            from: toAddress.address,
-            subject: `${subject} [${fromAddress.domain}]`,
-            text: `${body}`,
-            html: `${html}`,
-            attachments: attachmentsArray
-        };
+        // const email = {
+        //     to: process.env.TO_EMAIL_ADDRESS,
+        //     from: toAddress.address,
+        //     subject: `${subject} [${fromAddress.domain}]`,
+        //     text: `${body}`,
+        //     html: `${html}`,
+        //     attachments: attachmentsArray
+        // };
 
     }
 
