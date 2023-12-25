@@ -31,8 +31,6 @@ module.exports = async (req, res) => {
         };
     } else {
         // Create Email with attachment
-        const attachmentInfo = JSON.parse(req.file.attachment-info);
-        console.info(attachmentInfo);
 
         let attachmentsArray = [];
         for (let i = 1; i <= req.body.attachments; i++) {
@@ -40,9 +38,9 @@ module.exports = async (req, res) => {
             const attachmentNo = `${'attachment' + i}`; 
             const attachmentContent = {
                 content: req.file[attachmentNo],
-                filename: attachmentInfo.attachmentNo.filename,
-                type: attachmentInfo.attachmentNo.type,
-                content_id: attachmentInfo.attachmentNo.content-id,
+                filename: req.file[attachmentNo].filename,
+                type: req.file[attachmentNo].type,
+                content_id: req.file[attachmentNo].content-id,
                 disposition: "attachment"
             }
             attachmentsArray.push(attachmentContent);
