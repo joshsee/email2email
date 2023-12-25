@@ -52,7 +52,7 @@ module.exports = async (req, res) => {
         email = {
             to: process.env.TO_EMAIL_ADDRESS,
             from: toAddress.address,
-            subject: `${subject} [${fromAddress.domain}]`,
+            subject: `${subject} attach[${fromAddress.domain}]`,
             text: `${body}`,
             html: `${html}`,
             attachments: attachmentsArray,
