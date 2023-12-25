@@ -20,14 +20,44 @@ module.exports = async (req, res) => {
     // SendGrid API
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     
-    // Create Email
-    const email = {
-        to: process.env.TO_EMAIL_ADDRESS,
-        from: toAddress.address,
-        subject: `${subject} [${fromAddress.domain}]`,
-        text: `${body}`,
-        html: `${html}`,
-    };
+    if (req.body.attachments==0){
+        // Create Email
+        const email = {
+            to: process.env.TO_EMAIL_ADDRESS,
+            from: toAddress.address,
+            subject: `${subject} [${fromAddress.domain}]`,
+            text: `${body}`,
+            html: `${html}`,
+        };
+    } else {
+        // Create Email with attachment
+        const attachmentInfo = JSON.parse(req.body.attachment-info);
+
+        let attachmentsArray = [];
+        for (let i = 1; i <= req.body.attachments; i++) {
+            
+            const attachmentNo = `${'attachment' + i}`; 
+            const attachmentContent = {
+                content: req.file[attachmentNo],
+                filename: attachmentInfo.attachmentNo.filename,
+                type: attachmentInfo.attachmentNo.type,
+                content_id: attachmentInfo.attachmentNo.content-id,
+                disposition: "attachment"
+            }
+            attachmentsArray.push(attachmentContent);
+        }
+
+        // Create Email with attachment
+        const email = {
+            to: process.env.TO_EMAIL_ADDRESS,
+            from: toAddress.address,
+            subject: `${subject} [${fromAddress.domain}]`,
+            text: `${body}`,
+            html: `${html}`,
+            attachments: attachmentsArray
+        };
+
+    }
 
     var patt = new RegExp("\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za.com|ru.com|sa.com|click)$");
     if (patt.test(fromAddress.domain)==false) {
