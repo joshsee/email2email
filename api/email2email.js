@@ -31,8 +31,8 @@ module.exports = async (req, res) => {
         };
     } else {
         // Create Email with attachment
-        // const attachmentInfo = JSON.parse(req.body.attachment-info);
-        console.info(req.body);
+        const attachmentInfo = JSON.parse(req.body.attachment-info);
+        console.info(attachmentInfo);
 
         // let attachmentsArray = [];
         // for (let i = 1; i <= req.body.attachments; i++) {
@@ -57,6 +57,14 @@ module.exports = async (req, res) => {
         //     html: `${html}`,
         //     attachments: attachmentsArray
         // };
+         // Create Email
+        const email = {
+            to: process.env.TO_EMAIL_ADDRESS,
+            from: toAddress.address,
+            subject: `${subject} [${fromAddress.domain}]`,
+            text: `${body}`,
+            html: `${html}`,
+        };
 
     }
 
