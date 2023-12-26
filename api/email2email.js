@@ -35,21 +35,35 @@ module.exports = async (req, res) => {
         // Create Email with attachment
         const attachmentInfo = JSON.parse(req.body['attachment-info']);
 
-        let attachmentsArray = [];
-        for (let i = 1; i <= req.body.attachments; i++) {
-            
-            const attachmentNo = `${'attachment' + i}`;
-            pathToAttachment = `${'/tmp/' + attachmentInfo[attachmentNo].filename}`;
-            attachment = fs.readFileSync(pathToAttachment).toString("base64");
-            const attachmentContent = {
-                content: attachment,
-                filename: attachmentInfo[attachmentNo].filename,
-                type: attachmentInfo[attachmentNo].type,
-                disposition: "attachment"
-            }
-            attachmentsArray.push(attachmentContent);
+        // let attachmentsArray = [];
+        // for (let i = 1; i <= req.body.attachments; i++) {
+        //     const attachmentNo = `${'attachment' + i}`;
+        //     pathToAttachment = `${'/tmp/' + attachmentInfo[attachmentNo].filename}`;
+        //     attachment = fs.readFileSync(pathToAttachment).toString("base64");
+        //     const attachmentContent = {
+        //         content: attachment,
+        //         filename: attachmentInfo[attachmentNo].filename,
+        //         type: attachmentInfo[attachmentNo].type,
+        //         disposition: "attachment"
+        //     }
+        //     attachmentsArray.push(attachmentContent);
+        // }
 
-        }
+        var files = req.files;
+        if(files){
+            let i = 1;
+            files.forEach(function(file){
+                const attachmentNo = `${'attachment' + i}`;
+                var attachment = fs.readFileSync(file.path).toString("base64");
+                const attachmentContent = {
+                    content: attachment,
+                    filename: file.originalname,
+                    type: attachmentInfo[attachmentNo].type,
+                    disposition: "attachment"
+                }
+                attachmentsArray.push(attachmentContent);
+            });
+        }   
 
         //Create Email with attachment
         const emailAttach = {
