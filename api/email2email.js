@@ -5,7 +5,7 @@ const addrs = require("email-addresses");
 const sgMail = require('@sendgrid/mail');
 
 module.exports = async (req, res) => { 
-    await util.promisify(multer({ dest: './uploads/' }).any())(req, res);
+    await util.promisify(multer({ dest: '/tmp' }).any())(req, res);
 
     const from = req.body.from;
     const to = req.body.to;
@@ -51,7 +51,7 @@ module.exports = async (req, res) => {
         const emailAttach = {
             to: process.env.TO_EMAIL_ADDRESS,
             from: toAddress.address,
-            subject: `${subject} attach[${fromAddress.domain}]`,
+            subject: `${subject} attach [${fromAddress.domain}]`,
             text: `${body}`,
             html: `${html}`,
             attachments: attachmentsArray,
