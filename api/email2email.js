@@ -1,5 +1,6 @@
 // Email to Email
 const util = require('util');
+const fs = require('fs');
 const multer = require('multer');
 const addrs = require("email-addresses");
 const sgMail = require('@sendgrid/mail');
@@ -38,13 +39,16 @@ module.exports = async (req, res) => {
         for (let i = 1; i <= req.body.attachments; i++) {
             
             const attachmentNo = `${'attachment' + i}`;
+            pathToAttachment = `${'/tmp/' + attachmentInfo[attachmentNo].filename}`;
+            attachment = fs.readFileSync(pathToAttachment).toString("base64");
             const attachmentContent = {
-                content: req.file['attachment1'],
+                content: attachment,
                 filename: attachmentInfo[attachmentNo].filename,
                 type: attachmentInfo[attachmentNo].type,
                 disposition: "attachment"
             }
             attachmentsArray.push(attachmentContent);
+
         }
 
         //Create Email with attachment
