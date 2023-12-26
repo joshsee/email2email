@@ -5,7 +5,7 @@ const addrs = require("email-addresses");
 const sgMail = require('@sendgrid/mail');
 
 module.exports = async (req, res) => { 
-    await util.promisify(multer().any())(req, res);
+    await util.promisify(multer({ dest: './uploads/' }).any())(req, res);
 
     const from = req.body.from;
     const to = req.body.to;
@@ -39,7 +39,7 @@ module.exports = async (req, res) => {
             
             const attachmentNo = `${'attachment' + i}`;
             const attachmentContent = {
-                content: req.files[attachmentNo],
+                content: req.file['attachment1'],
                 filename: attachmentInfo[attachmentNo].filename,
                 type: attachmentInfo[attachmentNo].type,
                 disposition: "attachment"
@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
         .catch(error => {
             res.status(500);
         });
-        
+
     } 
 
     var patt = new RegExp("\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za.com|ru.com|sa.com|click)$");
