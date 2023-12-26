@@ -20,16 +20,7 @@ module.exports = async (req, res) => {
 
     // SendGrid API
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    
-    // Create Email
-    const email = {
-        to: process.env.TO_EMAIL_ADDRESS,
-        from: toAddress.address,
-        subject: `${subject} [${fromAddress.domain}]`,
-        text: `${body}`,
-        html: `${html}`,
-    };
-
+    const email = {};
     if (req.body.attachments>0){
 
         // Create Email with attachment
@@ -66,7 +57,7 @@ module.exports = async (req, res) => {
         }   
 
         //Create Email With Attachment
-        const emailAttach = {
+        email = {
             to: process.env.TO_EMAIL_ADDRESS,
             from: toAddress.address,
             subject: `${subject} attach [${fromAddress.domain}]`,
@@ -75,30 +66,27 @@ module.exports = async (req, res) => {
             attachments: attachmentsArray,
         };
         
+    } else {
+        // Create Email
+        email = {
+            to: process.env.TO_EMAIL_ADDRESS,
+            from: toAddress.address,
+            subject: `${subject} [${fromAddress.domain}]`,
+            text: `${body}`,
+            html: `${html}`,
+        };
     } 
 
     var patt = new RegExp("\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za.com|ru.com|sa.com|click)$");
     if (patt.test(fromAddress.domain)==false) {
-
-        if (req.body.attachments>0){
-            //Send Email With Attachment
-            sgResp = sgMail.send(emailAttach)
-                .then(response => {
-                    res.status(200).send(`Sent Email`);
-                })
-                .catch(error => {
-                    res.status(500);
-                });
-        } else {
-            //Send Email
-            sgResp = sgMail.send(email)
-                .then(response => {
-                    res.status(200).send(`Sent Email`);
-                })
-                .catch(error => {
-                    res.status(500);
-                });
-        }    
+        //Send Email
+        sgResp = sgMail.send(email)
+            .then(response => {
+                res.status(200).send(`Sent Email`);
+            })
+            .catch(error => {
+                res.status(500);
+            });    
     } else {
         res.status(200).send(`Wont Sent Email`);
     }
