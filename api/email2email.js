@@ -65,7 +65,7 @@ module.exports = async (req, res) => {
             });
         }   
 
-        //Create Email with attachment
+        //Create Email With Attachment
         const emailAttach = {
             to: process.env.TO_EMAIL_ADDRESS,
             from: toAddress.address,
@@ -74,28 +74,31 @@ module.exports = async (req, res) => {
             html: `${html}`,
             attachments: attachmentsArray,
         };
-        //Send Email
-        sgResp = sgMail.send(emailAttach)
-        .then(response => {
-            res.status(200).send(`Sent Email`);
-        })
-        .catch(error => {
-            res.status(500);
-        });
-
+        
     } 
 
     var patt = new RegExp("\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za.com|ru.com|sa.com|click)$");
     if (patt.test(fromAddress.domain)==false) {
-        //Send Email
-        sgResp = sgMail.send(email)
-            .then(response => {
-                res.status(200).send(`Sent Email`);
-            })
-            .catch(error => {
-                res.status(500);
-            });
-        // res.status(200).send(`Sent Email`);    
+
+        if (req.body.attachments>0){
+            //Send Email With Attachment
+            sgResp = sgMail.send(emailAttach)
+                .then(response => {
+                    res.status(200).send(`Sent Email`);
+                })
+                .catch(error => {
+                    res.status(500);
+                });
+        } else {
+            //Send Email
+            sgResp = sgMail.send(email)
+                .then(response => {
+                    res.status(200).send(`Sent Email`);
+                })
+                .catch(error => {
+                    res.status(500);
+                });
+        }    
     } else {
         res.status(200).send(`Wont Sent Email`);
     }
