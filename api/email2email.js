@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
         .catch(error => {
             res.status(500);
         });
-        return '';
+        
     } 
 
     var patt = new RegExp("\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za.com|ru.com|sa.com|click)$");
