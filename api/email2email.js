@@ -35,7 +35,7 @@ module.exports = async (req, res) => {
         // Create Email with attachment
         const attachmentInfo = JSON.parse(req.body['attachment-info']);
 
-        // let attachmentsArray = [];
+        let attachmentsArray = [];
         // for (let i = 1; i <= req.body.attachments; i++) {
         //     const attachmentNo = `${'attachment' + i}`;
         //     pathToAttachment = `${'/tmp/' + attachmentInfo[attachmentNo].filename}`;
