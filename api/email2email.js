@@ -57,7 +57,7 @@ module.exports = async (req, res) => {
             attachments: attachmentsArray,
         };
         //Send Email
-        sgResp = sgMail.send(email)
+        sgResp = sgMail.send(emailAttach)
         .then(response => {
             res.status(200).send(`Sent Email`);
         })
