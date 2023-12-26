@@ -56,31 +56,28 @@ module.exports = async (req, res) => {
             html: `${html}`,
             attachments: attachmentsArray,
         };
-
+        //Send Email
+        sgResp = sgMail.send(email)
+        .then(response => {
+            res.status(200).send(`Sent Email`);
+        })
+        .catch(error => {
+            res.status(500);
+        });
+        return '';
     } 
 
     var patt = new RegExp("\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za.com|ru.com|sa.com|click)$");
     if (patt.test(fromAddress.domain)==false) {
-        if (req.body.attachments>0){
-            //Send Email Attach
-            sgResp = sgMail.send(emailAttach)
-                .then(response => {
-                    res.status(200).send(`Sent Email Attach`);
-                })
-                .catch(error => {
-                    res.status(500);
-                });            
-        } else {
-            //Send Email
-            sgResp = sgMail.send(email)
-                .then(response => {
-                    res.status(200).send(`Sent Email`);
-                })
-                .catch(error => {
-                    res.status(500);
-                });
-            // res.status(200).send(`Sent Email`);
-        }    
+        //Send Email
+        sgResp = sgMail.send(email)
+            .then(response => {
+                res.status(200).send(`Sent Email`);
+            })
+            .catch(error => {
+                res.status(500);
+            });
+        // res.status(200).send(`Sent Email`);    
     } else {
         res.status(200).send(`Wont Sent Email`);
     }
