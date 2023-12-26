@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
 
     // SendGrid API
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    const email = {};
+    let email = {};
     if (req.body.attachments>0){
 
         // Create Email with attachment
