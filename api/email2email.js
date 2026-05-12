@@ -1,18 +1,109 @@
 // Email to Email
-const util = require('util');
 const fs = require('fs');
-const multer = require('multer');
+const os = require('os');
+const path = require('path');
+const crypto = require('crypto');
+const { TextDecoder } = require('util');
+const busboy = require('busboy');
 const addrs = require("email-addresses");
 const sgMail = require('@sendgrid/mail');
 
-module.exports = async (req, res) => { 
-    await util.promisify(multer({ dest: '/tmp' }).any())(req, res);
+function parseInboundForm(req) {
+    return new Promise((resolve, reject) => {
+        const body = {};
+        const files = [];
+        const fileWrites = [];
+        let parser;
 
-    const from = req.body.from;
-    const to = req.body.to;
-    const subject = req.body.subject;
-    const body = req.body.text;
-    const html = req.body.html;
+        try {
+            parser = busboy({
+                headers: req.headers,
+                // SendGrid provides original field charsets separately. Decode as
+                // latin1 first so each byte can be recovered and decoded below.
+                defCharset: 'latin1',
+            });
+        } catch (error) {
+            reject(error);
+            return;
+        }
+
+        parser.on('field', (name, value) => {
+            body[name] = value;
+        });
+
+        parser.on('file', (fieldname, file, info) => {
+            if (!info.filename) {
+                file.resume();
+                return;
+            }
+
+            const filename = `email2email-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
+            const filePath = path.join(os.tmpdir(), filename);
+            const writeStream = fs.createWriteStream(filePath);
+
+            fileWrites.push(new Promise((resolveFile, rejectFile) => {
+                file.on('error', rejectFile);
+                writeStream.on('error', rejectFile);
+                writeStream.on('finish', () => {
+                    files.push({
+                        fieldname: fieldname,
+                        path: filePath,
+                        originalname: info.filename,
+                        mimetype: info.mimeType,
+                    });
+                    resolveFile();
+                });
+            }));
+
+            file.pipe(writeStream);
+        });
+
+        parser.on('error', reject);
+        parser.on('close', () => {
+            Promise.all(fileWrites)
+                .then(() => resolve({ body: body, files: files }))
+                .catch(reject);
+        });
+
+        req.pipe(parser);
+    });
+}
+
+function decodeFormValue(value, charset) {
+    if (value === undefined || value === null) {
+        return '';
+    }
+
+    const rawValue = Array.isArray(value) ? value[value.length - 1] : value;
+    const bytes = Buffer.from(String(rawValue), 'latin1');
+    const encoding = charset || 'utf-8';
+
+    try {
+        return new TextDecoder(encoding).decode(bytes);
+    } catch (error) {
+        return bytes.toString('utf8');
+    }
+}
+
+function parseJsonFormValue(value) {
+    if (!value) {
+        return {};
+    }
+
+    return JSON.parse(decodeFormValue(value, 'utf-8'));
+}
+
+module.exports = async (req, res) => { 
+    const parsedForm = await parseInboundForm(req);
+    const reqBody = parsedForm.body;
+    const charsets = parseJsonFormValue(reqBody.charsets);
+
+    const from = decodeFormValue(reqBody.from, charsets.from);
+    const to = decodeFormValue(reqBody.to, charsets.to);
+    const subject = decodeFormValue(reqBody.subject, charsets.subject);
+    const body = decodeFormValue(reqBody.text, charsets.text);
+    const html = decodeFormValue(reqBody.html, charsets.html);
+    const attachmentCount = Number.parseInt(decodeFormValue(reqBody.attachments, 'utf-8'), 10) || 0;
 
     // Strip for email 
     const fromAddress = addrs.parseOneAddress(from);
@@ -21,35 +112,21 @@ module.exports = async (req, res) => {
     // SendGrid API
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     var email = {};
-    if (req.body.attachments>0){
+    if (attachmentCount > 0){
 
         // Create Email with attachment
-        const attachmentInfo = JSON.parse(req.body['attachment-info']);
+        const attachmentInfo = parseJsonFormValue(reqBody['attachment-info']);
 
         let attachmentsArray = [];
-        // for (let i = 1; i <= req.body.attachments; i++) {
-        //     const attachmentNo = `${'attachment' + i}`;
-        //     pathToAttachment = `${'/tmp/' + attachmentInfo[attachmentNo].filename}`;
-        //     attachment = fs.readFileSync(pathToAttachment).toString("base64");
-        //     const attachmentContent = {
-        //         content: attachment,
-        //         filename: attachmentInfo[attachmentNo].filename,
-        //         type: attachmentInfo[attachmentNo].type,
-        //         disposition: "attachment"
-        //     }
-        //     attachmentsArray.push(attachmentContent);
-        // }
-
-        var files = req.files;
+        var files = parsedForm.files;
         if(files){
-            let i = 1;
             files.forEach(function(file){
-                const attachmentNo = `${'attachment' + i}`;
+                const attachmentMeta = attachmentInfo[file.fieldname] || {};
                 var attachment = fs.readFileSync(file.path).toString("base64");
                 const attachmentContent = {
                     content: attachment,
-                    filename: file.originalname,
-                    type: attachmentInfo[attachmentNo].type,
+                    filename: attachmentMeta.filename || attachmentMeta.name || file.originalname,
+                    type: attachmentMeta.type || file.mimetype,
                     disposition: "attachment"
                 }
                 attachmentsArray.push(attachmentContent);
@@ -80,7 +157,7 @@ module.exports = async (req, res) => {
     var patt = new RegExp("\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za.com|ru.com|sa.com|click)$");
     if (patt.test(fromAddress.domain)==false) {
         //Send Email
-        sgResp = sgMail.send(email)
+        sgMail.send(email)
             .then(response => {
                 res.status(200).send(`Sent Email`);
             })
