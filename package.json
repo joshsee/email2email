@@ -8,10 +8,11 @@
     "axios": "^1.6.0",
     "busboy": "^1.6.0",
     "email-addresses": "^3.1.0",
+    "mailparser": "^3.9.8",
     "util": "^0.12.3"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "repository": {
     "type": "git",
