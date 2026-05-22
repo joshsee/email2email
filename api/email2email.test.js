@@ -80,7 +80,27 @@ test('keeps parsed SendGrid inbound fields working', async () => {
     assert.equal(forwardEmail.html, '<p>Plain text body</p>');
 });
 
-test('falls back to non-empty text and subject so SendGrid does not 400', async () => {
+test('omits text entirely when only HTML is present (SendGrid content.0.value)', async () => {
+    process.env.TO_EMAIL_ADDRESS = 'forward@example.com';
+
+    const inboundEmail = await parseInboundEmail({
+        body: {
+            from: 'Sender <sender@example.com>',
+            to: 'Receiver <receiver@example.com>',
+            subject: 'HTML only',
+            text: '',
+            html: '<p>Hello there</p>',
+            attachments: '0',
+        },
+        files: [],
+    });
+    const forwardEmail = buildForwardEmail(inboundEmail);
+
+    assert.equal('text' in forwardEmail, false);
+    assert.equal(forwardEmail.html, '<p>Hello there</p>');
+});
+
+test('falls back to non-empty text when neither text nor HTML is present', async () => {
     process.env.TO_EMAIL_ADDRESS = 'forward@example.com';
 
     const inboundEmail = await parseInboundEmail({
@@ -107,7 +127,11 @@ test('describeSendGridError surfaces the nested errors array', () => {
     error.response = {
         body: {
             errors: [
-                { message: 'The from address does not match a verified Sender Identity.', field: 'from' },
+                {
+                    message: 'The content value must be a string at least one character in length.',
+                    field: 'content.0.value',
+                    help: 'http://sendgrid.com/docs/API_Reference/Web_API_v3/Mail/errors.html#message.content.value',
+                },
             ],
         },
     };
@@ -116,7 +140,7 @@ test('describeSendGridError surfaces the nested errors array', () => {
 
     assert.ok(Array.isArray(errors));
     assert.equal(errors.length, 1);
-    assert.equal(errors[0].field, 'from');
+    assert.equal(errors[0].field, 'content.0.value');
 });
 
 test('describeSendGridError returns null for non-SendGrid errors', () => {
