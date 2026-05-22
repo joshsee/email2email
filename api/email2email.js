@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+const util = require('util');
 const { TextDecoder } = require('util');
 const busboy = require('busboy');
 const addrs = require("email-addresses");
@@ -263,14 +264,19 @@ async function parseInboundEmail(parsedForm) {
 function buildForwardEmail(inboundEmail) {
     validateInboundEmail(inboundEmail);
 
+    const baseSubject = (inboundEmail.subject || '').trim() || '(no subject)';
+    const attachmentMarker = inboundEmail.attachments.length > 0 ? ' attach' : '';
+    const hasText = typeof inboundEmail.text === 'string' && inboundEmail.text.length > 0;
+    const hasHtml = typeof inboundEmail.html === 'string' && inboundEmail.html.length > 0;
+
     const email = {
         to: process.env.TO_EMAIL_ADDRESS,
         from: inboundEmail.toAddress.address,
-        subject: `${inboundEmail.subject}${inboundEmail.attachments.length > 0 ? ' attach' : ''} [${inboundEmail.fromAddress.domain}]`,
-        text: inboundEmail.text || '',
+        subject: `${baseSubject}${attachmentMarker} [${inboundEmail.fromAddress.domain}]`,
+        text: hasText ? inboundEmail.text : (hasHtml ? '' : '(no body)'),
     };
 
-    if (inboundEmail.html) {
+    if (hasHtml) {
         email.html = inboundEmail.html;
     }
 
@@ -279,6 +285,18 @@ function buildForwardEmail(inboundEmail) {
     }
 
     return email;
+}
+
+function describeSendGridError(error) {
+    const response = error && error.response;
+    const body = response && response.body;
+    const errors = body && body.errors;
+
+    if (!Array.isArray(errors)) {
+        return null;
+    }
+
+    return errors;
 }
 
 async function handler(req, res) {
@@ -299,7 +317,17 @@ async function handler(req, res) {
         return res.status(200).send(`Sent Email`);
     } catch (error) {
         const statusCode = error.statusCode || 500;
-        console.error('email2email failed:', error);
+        const sendGridErrors = describeSendGridError(error);
+
+        if (sendGridErrors) {
+            console.error(
+                'email2email failed: SendGrid rejected the send:',
+                util.inspect(sendGridErrors, { depth: null }),
+            );
+        } else {
+            console.error('email2email failed:', util.inspect(error, { depth: null }));
+        }
+
         return res.status(statusCode).send(statusCode === 500 ? 'Failed to process inbound email' : error.message);
     }
 }
@@ -308,6 +336,7 @@ module.exports = handler;
 module.exports._test = {
     buildForwardEmail,
     decodeFormValue,
+    describeSendGridError,
     parseInboundEmail,
     parseRawInboundEmail,
 };
