@@ -4,6 +4,7 @@ const test = require('node:test');
 const handler = require('./email2email');
 const {
     buildForwardEmail,
+    describeSendGridError,
     parseInboundEmail,
 } = handler._test;
 
@@ -77,4 +78,48 @@ test('keeps parsed SendGrid inbound fields working', async () => {
     assert.equal(forwardEmail.subject, 'Parsed field message [example.com]');
     assert.equal(forwardEmail.text, 'Plain text body');
     assert.equal(forwardEmail.html, '<p>Plain text body</p>');
+});
+
+test('falls back to non-empty text and subject so SendGrid does not 400', async () => {
+    process.env.TO_EMAIL_ADDRESS = 'forward@example.com';
+
+    const inboundEmail = await parseInboundEmail({
+        body: {
+            from: 'Sender <sender@example.com>',
+            to: 'Receiver <receiver@example.com>',
+            subject: '',
+            text: '',
+            html: '',
+            attachments: '0',
+        },
+        files: [],
+    });
+    const forwardEmail = buildForwardEmail(inboundEmail);
+
+    assert.equal(forwardEmail.subject, '(no subject) [example.com]');
+    assert.equal(forwardEmail.text, '(no body)');
+    assert.equal('html' in forwardEmail, false);
+});
+
+test('describeSendGridError surfaces the nested errors array', () => {
+    const error = new Error('Bad Request');
+    error.code = 400;
+    error.response = {
+        body: {
+            errors: [
+                { message: 'The from address does not match a verified Sender Identity.', field: 'from' },
+            ],
+        },
+    };
+
+    const errors = describeSendGridError(error);
+
+    assert.ok(Array.isArray(errors));
+    assert.equal(errors.length, 1);
+    assert.equal(errors[0].field, 'from');
+});
+
+test('describeSendGridError returns null for non-SendGrid errors', () => {
+    assert.equal(describeSendGridError(new Error('boom')), null);
+    assert.equal(describeSendGridError({ response: { body: 'not json' } }), null);
 });
