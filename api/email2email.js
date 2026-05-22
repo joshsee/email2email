@@ -273,11 +273,22 @@ function buildForwardEmail(inboundEmail) {
         to: process.env.TO_EMAIL_ADDRESS,
         from: inboundEmail.toAddress.address,
         subject: `${baseSubject}${attachmentMarker} [${inboundEmail.fromAddress.domain}]`,
-        text: hasText ? inboundEmail.text : (hasHtml ? '' : '(no body)'),
     };
+
+    if (hasText) {
+        email.text = inboundEmail.text;
+    }
 
     if (hasHtml) {
         email.html = inboundEmail.html;
+    }
+
+    if (!hasText && !hasHtml) {
+        // SendGrid rejects empty content.0.value strings (error code
+        // message.content.value), so when the inbound message has neither
+        // a text nor an HTML body — e.g. attachment-only mail — we fall
+        // back to a single non-empty text part.
+        email.text = '(no body)';
     }
 
     if (inboundEmail.attachments.length > 0) {
