@@ -4,6 +4,7 @@
   "description": "email2email",
   "main": "api/index.js",
   "dependencies": {
+    "@notionhq/client": "^5.22.0",
     "@sendgrid/mail": "^8.1.6",
     "axios": "^1.6.0",
     "busboy": "^1.6.0",
