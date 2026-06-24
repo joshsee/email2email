@@ -21,7 +21,7 @@ flowchart TD
 
 ### Receipt processing
 
-When an email arrives at **`receipt@your-domain.com`** from the authorized sender (set via `RECEIPT_AUTHORIZED_SENDER`):
+When an email arrives at your configured **`RECEIPT_EMAIL`** from the authorized sender (`RECEIPT_AUTHORIZED_SENDER`):
 
 1. Parse the email body (BOC credit card or BoC Pay+ format)
 2. Rename the merchant and set Category when a rule matches
@@ -89,7 +89,7 @@ https://<your-vercel-domain>/api/email2email
 
 In SendGrid, point your inbound parse webhook at the URL above for the domain(s) you receive mail on (e.g. `your-domain.com`).
 
-Set the receipt inbound address in `lib/receiptHandler.js` (`RECEIPT_EMAIL`) to match your SendGrid parse setting.
+Set `RECEIPT_EMAIL` in Vercel to match your SendGrid inbound parse address (e.g. `receipt@your-domain.com`).
 
 ### 3. Notion integration
 
@@ -113,6 +113,8 @@ Copy [`.env.example`](.env.example) and set values in Vercel (Production and Pre
 | `SENDGRID_API_KEY` | Yes | Send forwarded mail |
 | `TO_EMAIL_ADDRESS` | Yes | Destination for forwarded mail |
 | `NOTION_API_KEY` | Yes | Notion integration for receipt flow |
+| `RECEIPT_EMAIL` | Yes | Inbound address for BOC receipt processing |
+| `RECEIPT_AUTHORIZED_SENDER` | Yes | Sender allowed for receipt processing |
 | `NOTION_EXPENSES_DATABASE_ID` | Yes | Expenses database ID |
 | `NOTION_WALLET_DATABASE_ID` | Yes | Wallet database ID |
 | `NOTION_DAILY_EXPENSE_DATABASE_ID` | Yes | Daily Expense database ID |
@@ -121,19 +123,18 @@ Copy [`.env.example`](.env.example) and set values in Vercel (Production and Pre
 | `NOTION_CATEGORY_GROCERY_ID` | Optional | Category page ID for Grocery merchants |
 | `NOTION_CATEGORY_TRANSPORT_ID` | Optional | Category page ID for Transport merchants |
 | `NOTION_CATEGORY_SHOPPING_ID` | Optional | Category page ID for Shopping merchants |
-| `RECEIPT_AUTHORIZED_SENDER` | Optional | Sender allowed for receipt processing |
 
 ## Usage
 
 ### Forwarding email
 
-Send or forward any email to your configured inbound address **except** `receipt@your-domain.com`. It will be relayed to `TO_EMAIL_ADDRESS` with the original body and attachments.
+Send or forward any email to your configured inbound address **except** your `RECEIPT_EMAIL` address. It will be relayed to `TO_EMAIL_ADDRESS` with the original body and attachments.
 
 Spam from certain TLDs is dropped silently.
 
 ### Logging BOC receipts
 
-Forward a BOC transaction notification to **`receipt@your-domain.com`** from the authorized sender address. The app creates a Notion Expense row and returns JSON:
+Forward a BOC transaction notification to your **`RECEIPT_EMAIL`** address from the authorized sender. The app creates a Notion Expense row and returns JSON:
 
 ```json
 { "status": "created", "pageId": "...", "name": "Citybus", "date": "2026-06-21", "amountHkd": 4.4 }

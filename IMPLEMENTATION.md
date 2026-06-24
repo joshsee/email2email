@@ -183,8 +183,8 @@ To add a card bypass: add the last 4 digits to `EXACT_MERCHANT_CARD_LAST4` in th
 
 Receipt processing only runs when **both** are true:
 
-- **To:** your configured receipt address (`RECEIPT_EMAIL` in `lib/receiptHandler.js`)
-- **From:** `RECEIPT_AUTHORIZED_SENDER` (env var; code default if unset)
+- **To:** `RECEIPT_EMAIL` (env var)
+- **From:** `RECEIPT_AUTHORIZED_SENDER` (env var)
 
 Unauthorized senders receive HTTP **403** with `{ status: "error", message: "Unauthorized receipt sender" }`. The email is not parsed, not forwarded, and nothing is written to Notion.
 
@@ -218,6 +218,8 @@ See [`.env.example`](.env.example).
 | Variable | Required | Purpose |
 |---|---|---|
 | `NOTION_API_KEY` | Yes (receipt flow) | Notion integration secret |
+| `RECEIPT_EMAIL` | Yes (receipt flow) | Inbound address for BOC receipt processing |
+| `RECEIPT_AUTHORIZED_SENDER` | Yes (receipt flow) | Sender allowed for receipt processing |
 | `NOTION_EXPENSES_DATABASE_ID` | Yes (receipt flow) | Expenses database ID |
 | `NOTION_WALLET_DATABASE_ID` | Yes (receipt flow) | Wallet database ID |
 | `NOTION_DAILY_EXPENSE_DATABASE_ID` | Yes (receipt flow) | Daily Expense database ID |
@@ -226,7 +228,6 @@ See [`.env.example`](.env.example).
 | `NOTION_CATEGORY_GROCERY_ID` | Optional | Category page ID for Grocery merchants |
 | `NOTION_CATEGORY_TRANSPORT_ID` | Optional | Category page ID for Transport merchants |
 | `NOTION_CATEGORY_SHOPPING_ID` | Optional | Category page ID for Shopping merchants |
-| `RECEIPT_AUTHORIZED_SENDER` | Optional | Sender allowed for receipt processing (see [Receipt security](#receipt-security)) |
 | `SENDGRID_API_KEY` | Yes (non-receipt mail) | Existing forward behaviour |
 | `TO_EMAIL_ADDRESS` | Yes (non-receipt mail) | Existing forward destination |
 
