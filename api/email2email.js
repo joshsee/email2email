@@ -9,7 +9,7 @@ const busboy = require('busboy');
 const addrs = require("email-addresses");
 const sgMail = require('@sendgrid/mail');
 const { simpleParser } = require('mailparser');
-const { isReceiptEmail, processReceiptEmail, getReceiptErrorStatus } = require('../lib/receiptHandler');
+const { isReceiptEmail, isAuthorizedReceiptSender, processReceiptEmail, getReceiptErrorStatus } = require('../lib/receiptHandler');
 
 const blockedDomainPattern = /\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za\.com|ru\.com|sa\.com|click)$/i;
 
@@ -319,6 +319,17 @@ async function handler(req, res) {
         validateInboundEmail(inboundEmail);
 
         if (isReceiptEmail(inboundEmail.toAddress)) {
+            if (!isAuthorizedReceiptSender(inboundEmail.fromAddress)) {
+                console.warn(
+                    'rejected unauthorized receipt email from:',
+                    inboundEmail.fromAddress && inboundEmail.fromAddress.address,
+                );
+                return res.status(403).json({
+                    status: 'error',
+                    message: 'Unauthorized receipt sender',
+                });
+            }
+
             try {
                 const result = await processReceiptEmail(inboundEmail);
                 return res.status(200).json(result);
