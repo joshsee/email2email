@@ -9,6 +9,7 @@ const busboy = require('busboy');
 const addrs = require("email-addresses");
 const sgMail = require('@sendgrid/mail');
 const { simpleParser } = require('mailparser');
+const { isReceiptEmail, processReceiptEmail, getReceiptErrorStatus } = require('../lib/receiptHandler');
 
 const blockedDomainPattern = /\.(buzz|guru|cyou|biz|live|co|us|today|icu|rest|bar|za\.com|ru\.com|sa\.com|click)$/i;
 
@@ -316,6 +317,20 @@ async function handler(req, res) {
         const inboundEmail = await parseInboundEmail(parsedForm);
 
         validateInboundEmail(inboundEmail);
+
+        if (isReceiptEmail(inboundEmail.toAddress)) {
+            try {
+                const result = await processReceiptEmail(inboundEmail);
+                return res.status(200).json(result);
+            } catch (error) {
+                const statusCode = getReceiptErrorStatus(error);
+                console.error('receipt processing failed:', util.inspect(error, { depth: null }));
+                return res.status(statusCode).json({
+                    status: 'error',
+                    message: error.message,
+                });
+            }
+        }
 
         if (blockedDomainPattern.test(inboundEmail.fromAddress.domain)) {
             return res.status(200).send(`Wont Sent Email`);

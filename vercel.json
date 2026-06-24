@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/email2email.js": {
+      "maxDuration": 30
+    }
+  }
+}
