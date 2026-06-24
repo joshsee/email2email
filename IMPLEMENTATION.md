@@ -1,9 +1,16 @@
 # BOC Receipt to Notion — Plan and Implementation
 
-**Pull request:** https://github.com/joshsee/email2email/pull/9  
-**Branch:** `feat/boc-receipt-to-notion`
-
 This document records the original requirements, design decisions, and what was built.
+
+Follow-up PRs after the initial implementation:
+
+| PR | Change |
+|---|---|
+| [#10](https://github.com/joshsee/email2email/pull/10) | Notion SDK v5 (`dataSources.query`, `data_source_id` parents) |
+| [#11](https://github.com/joshsee/email2email/pull/11) | Pay+ wallet maps to `BoC Pay`; receipt sender authorization |
+| [#12](https://github.com/joshsee/email2email/pull/12) | Notion page icons on create |
+| [#13](https://github.com/joshsee/email2email/pull/13) | `README.md` |
+| [#14](https://github.com/joshsee/email2email/pull/14) | Card `1110` skips merchant rename rules |
 
 ---
 
@@ -27,12 +34,14 @@ SendGrid Inbound Parse
         │
         └── to = receipt@littleplan.com
                 │
+                ├── from ≠ RECEIPT_AUTHORIZED_SENDER ──► 403 Unauthorized
+                │
                 ├── parse email body (credit card or Pay+ format)
-                ├── apply merchant rename + category rules
+                ├── apply merchant rename + category rules (card-specific bypasses apply)
                 ├── resolve amounts (HKD direct, or FX conversion)
-                ├── lookup Wallet by card last 4 digits
+                ├── lookup Wallet (card last 4, or BoC Pay for Pay+)
                 ├── find/create Daily + Monthly Expense pages
-                ├── deduplicate, then create Notion Expense row
+                ├── deduplicate, then create Notion Expense row (with icon)
                 └── return JSON { status: "created" | "duplicate" }
 ```
 
@@ -65,7 +74,7 @@ Amount : HKD 4.40
 
 - Date is full `YYYY/MM/DD` — no year inference.
 - Amount pattern: `HKD 4.40` (space between currency and value).
-- Wallet lookup uses the card number from `Top-up Account No.`.
+- Wallet lookup uses the Notion wallet named **`BoC Pay`** (not card last 4).
 
 ### Foreign currency (Format A)
 
@@ -93,7 +102,7 @@ For non-HKD amounts:
 | **Amount** | HKD amount (direct or converted), 1 decimal place |
 | **Amount CNY / USD / MYR / SGD** | Original foreign amount when applicable, 2 decimal places |
 | **Exchange Rate** | Text, e.g. `1CNY=1.15970HKD` (5 decimal rate) |
-| **Wallet** | Relation — matched by card last 4, e.g. `Go R - 1110` |
+| **Wallet** | Relation — see [Wallet lookup](#wallet-lookup) below |
 | **Category** | Relation — set when merchant matches a rule; otherwise blank |
 | **Daily Expense** | Relation — page where `Date` = transaction date (created if missing) |
 | **Monthly Expense** | Relation — page named `YYYY MM`, e.g. `2026 06` (created if missing) |
@@ -110,9 +119,35 @@ For non-HKD amounts:
 
 ### Wallet lookup
 
-Wallet names follow `{label} - {last4}` (e.g. `Go R - 1110`, `Go J - 0112`).
+| Email type | Lookup |
+|---|---|
+| Credit card | Notion Wallet `Name` **ends with** ` - {cardLast4}` (e.g. `Go R - 1110`) |
+| BoC Pay+ | Exact wallet name **`BoC Pay`** |
 
-Query: Notion filter `Name` **ends with** ` - {cardLast4}`.
+### Notion API (SDK v5)
+
+`@notionhq/client` v5 uses Notion API `2025-09-03`:
+
+- **Query** databases via `notion.dataSources.query({ data_source_id, filter })`
+- **Create** pages with `parent: { data_source_id }` (not `database_id`)
+- Data source IDs are resolved from `notion.databases.retrieve()` and cached per database
+
+Implemented in `lib/notionExpense.js`.
+
+### Page icons
+
+New pages get a Notion native icon at create time (`lib/expenseIcon.js`):
+
+| Target | Icon |
+|---|---|
+| Gym - LCSD / Sports | dumbbell |
+| ParkNShop / Grocery | banana |
+| Citybus / Transport | bus |
+| MTR | train |
+| Taobao / Shopping | shopping-bag |
+| Unknown merchants | credit-card |
+| Daily Expense (new) | calendar-day |
+| Monthly Expense (new) | calendar |
 
 ---
 
@@ -130,7 +165,23 @@ Keyword matching is **case-insensitive substring**. First matching rule wins.
 
 Category page IDs are hardcoded in `lib/merchantRules.js`. Unmatched merchants keep the raw name and leave Category blank.
 
-To add a new merchant: edit the `RULES` array in `lib/merchantRules.js`.
+### Card-specific bypass
+
+Cards listed in `EXACT_MERCHANT_CARD_LAST4` (currently **`1110`**) skip rename and category rules entirely. The raw merchant name from the email is used and Category is left blank.
+
+To add a new merchant: edit the `RULES` array in `lib/merchantRules.js`.  
+To add a card bypass: add the last 4 digits to `EXACT_MERCHANT_CARD_LAST4` in the same file.
+
+---
+
+## Receipt security
+
+Receipt processing only runs when **both** are true:
+
+- **To:** `receipt@littleplan.com`
+- **From:** `RECEIPT_AUTHORIZED_SENDER` (env var; code default if unset)
+
+Unauthorized senders receive HTTP **403** with `{ status: "error", message: "Unauthorized receipt sender" }`. The email is not parsed, not forwarded, and nothing is written to Notion.
 
 ---
 
@@ -166,6 +217,7 @@ See [`.env.example`](.env.example).
 | `NOTION_WALLET_DATABASE_ID` | Optional | Defaults to Wallet DB ID above |
 | `NOTION_DAILY_EXPENSE_DATABASE_ID` | Optional | Defaults to Daily Expense DB ID above |
 | `NOTION_MONTHLY_EXPENSE_DATABASE_ID` | Optional | Defaults to Monthly Expense DB ID above |
+| `RECEIPT_AUTHORIZED_SENDER` | Optional | Sender allowed for receipt processing (see [Receipt security](#receipt-security)) |
 | `SENDGRID_API_KEY` | Yes (non-receipt mail) | Existing forward behaviour |
 | `TO_EMAIL_ADDRESS` | Yes (non-receipt mail) | Existing forward destination |
 
@@ -195,10 +247,12 @@ See [`.env.example`](.env.example).
 | `lib/parseBocTransaction.js` | Parse credit card and Pay+ email formats |
 | `lib/merchantRules.js` | Merchant rename + Category mapping |
 | `lib/exchangeRate.js` | Frankfurter FX lookup and HKD conversion |
-| `lib/notionExpense.js` | Notion API: wallet lookup, period pages, expense create, dedup |
+| `lib/notionExpense.js` | Notion API: wallet lookup, period pages, expense create, dedup, icons |
+| `lib/expenseIcon.js` | Notion native icon selection for new pages |
 | `lib/receiptHandler.js` | Orchestrates the receipt processing pipeline |
 | `lib/stripHtml.js` | HTML-to-text fallback when plain text is empty |
-| `lib/receipt.test.js` | Unit tests for parser, rules, FX formatting |
+| `lib/receipt.test.js` | Unit tests for parser, rules, FX, wallet routing, icons |
+| `README.md` | Project overview and setup guide |
 | `public/index.html` | Landing page |
 | `vercel.json` | Vercel function config |
 | `.env.example` | Environment variable template |
@@ -229,6 +283,7 @@ See [`.env.example`](.env.example).
 |---|---|---|
 | Expense created | 200 | `{ status: "created", pageId, name, date, amountHkd }` |
 | Duplicate | 200 | `{ status: "duplicate", pageId }` |
+| Unauthorized sender | 403 | `{ status: "error", message: "Unauthorized receipt sender" }` |
 | Parse failure | 422 | `{ status: "error", message: "..." }` |
 | Wallet not found | 422 | `{ status: "error", message: "No wallet found for card ending ..." }` |
 | FX lookup failed | 422 | `{ status: "error", message: "..." }` |
@@ -242,14 +297,19 @@ See [`.env.example`](.env.example).
 npm test
 ```
 
-12 tests cover:
+11 tests in `lib/receipt.test.js` cover:
 
-- Existing email forward/parse behaviour (6 tests)
 - Credit card HKD and CNY parsing
 - BoC Pay+ parsing
 - Merchant rules (ParkNShop, Taobao, Citybus)
+- Card `1110` exact-merchant bypass
 - Exchange rate text formatting
 - Monthly expense name generation
+- Pay+ vs credit card wallet routing
+- Receipt sender authorization
+- Expense icon resolution
+
+6 tests in `api/email2email.test.js` cover existing email forward/parse behaviour.
 
 ### Manual smoke test
 
@@ -278,6 +338,11 @@ Requires `NOTION_API_KEY` and database access configured locally.
 | Daily/Monthly Expense | Find or create by transaction date | User requested explicit linking |
 | FX source | Frankfurter API | Free, no API key, supports historical dates |
 | Pay+ vs credit card detection | Try Pay+ first | More specific markers reduce false matches |
+| Pay+ wallet lookup | Exact name `BoC Pay` | Pay+ is a separate wallet, not card-suffix matched |
+| Receipt security | Authorized sender only | Prevent arbitrary inbound receipt processing |
+| Card `1110` merchants | Exact name, no rules | Per-user preference for one card |
+| Notion SDK | v5 / API 2025-09-03 | `dataSources` API required for query/create |
+| Page icons | Native Notion icons on create | Visual consistency in Expense Journal |
 | Dedup key | Name + Date + amount (foreign field if applicable) | Avoids duplicates on SendGrid retry |
 
 ---
