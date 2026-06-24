@@ -11,6 +11,8 @@ Follow-up PRs after the initial implementation:
 | [#12](https://github.com/joshsee/email2email/pull/12) | Notion page icons on create |
 | [#13](https://github.com/joshsee/email2email/pull/13) | `README.md` |
 | [#14](https://github.com/joshsee/email2email/pull/14) | Card `1110` skips merchant rename rules |
+| [#15](https://github.com/joshsee/email2email/pull/15) | README Mermaid fix; scrub personal addresses from docs |
+| [#16](https://github.com/joshsee/email2email/pull/16) | Notion IDs and receipt config moved to required env vars |
 
 ---
 
@@ -30,9 +32,9 @@ SendGrid Inbound Parse
         ▼
 /api/email2email  (Vercel serverless)
         │
-        ├── to ≠ receipt@your-domain.com ──► forward via SendGrid (existing behaviour)
+        ├── to ≠ RECEIPT_EMAIL ──► forward via SendGrid (existing behaviour)
         │
-        └── to = receipt@your-domain.com
+        └── to = RECEIPT_EMAIL
                 │
                 ├── from ≠ RECEIPT_AUTHORIZED_SENDER ──► 403 Unauthorized
                 │
@@ -181,12 +183,21 @@ To add a card bypass: add the last 4 digits to `EXACT_MERCHANT_CARD_LAST4` in th
 
 ## Receipt security
 
+Receipt routing and authorization are configured entirely via environment variables in `lib/receiptHandler.js`. There are **no hardcoded addresses or fallbacks** in code.
+
+| Variable | Required | Behaviour when unset |
+|---|---|---|
+| `RECEIPT_EMAIL` | Yes | `isReceiptEmail()` returns false — mail is forwarded like any other inbound message |
+| `RECEIPT_AUTHORIZED_SENDER` | Yes | `isAuthorizedReceiptSender()` returns false — receipt address mail gets **403** |
+
 Receipt processing only runs when **both** are true:
 
-- **To:** `RECEIPT_EMAIL` (env var)
-- **From:** `RECEIPT_AUTHORIZED_SENDER` (env var)
+- **To** matches `RECEIPT_EMAIL` (case-insensitive)
+- **From** matches `RECEIPT_AUTHORIZED_SENDER` (case-insensitive)
 
 Unauthorized senders receive HTTP **403** with `{ status: "error", message: "Unauthorized receipt sender" }`. The email is not parsed, not forwarded, and nothing is written to Notion.
+
+Set both in Vercel (Production and Preview) before deploying the receipt flow. See [`.env.example`](.env.example).
 
 ---
 
@@ -218,8 +229,8 @@ See [`.env.example`](.env.example).
 | Variable | Required | Purpose |
 |---|---|---|
 | `NOTION_API_KEY` | Yes (receipt flow) | Notion integration secret |
-| `RECEIPT_EMAIL` | Yes (receipt flow) | Inbound address for BOC receipt processing |
-| `RECEIPT_AUTHORIZED_SENDER` | Yes (receipt flow) | Sender allowed for receipt processing |
+| `RECEIPT_EMAIL` | Yes (receipt flow) | Inbound address for BOC receipt processing; must match SendGrid parse setting |
+| `RECEIPT_AUTHORIZED_SENDER` | Yes (receipt flow) | Sender allowed for receipt processing; no code default |
 | `NOTION_EXPENSES_DATABASE_ID` | Yes (receipt flow) | Expenses database ID |
 | `NOTION_WALLET_DATABASE_ID` | Yes (receipt flow) | Wallet database ID |
 | `NOTION_DAILY_EXPENSE_DATABASE_ID` | Yes (receipt flow) | Daily Expense database ID |
