@@ -13,15 +13,15 @@ Receipt emails are never forwarded. They are written to Notion only.
 flowchart TD
     sg[SendGrid Inbound Parse] --> api["/api/email2email"]
     api --> check{To address?}
-    check -->|receipt@littleplan.com| auth{From authorized sender?}
+    check -->|"receipt@littleplan.com"| auth{From authorized sender?}
     auth -->|no| deny[403 Unauthorized]
-    auth -->|yes| notion[Parse receipt → create Notion expense]
-    check -->|anything else| forward[Forward via SendGrid to TO_EMAIL_ADDRESS]
+    auth -->|yes| notion["Parse receipt, create Notion expense"]
+    check -->|other| forward["Forward via SendGrid"]
 ```
 
 ### Receipt processing
 
-When an email arrives at **`receipt@littleplan.com`** from the authorized sender (default: `ychian@gmail.com`):
+When an email arrives at **`receipt@littleplan.com`** from the authorized sender (set via `RECEIPT_AUTHORIZED_SENDER`):
 
 1. Parse the email body (BOC credit card or BoC Pay+ format)
 2. Rename the merchant and set Category when a rule matches
@@ -111,7 +111,7 @@ Copy [`.env.example`](.env.example) and set values in Vercel (Production and Pre
 | `SENDGRID_API_KEY` | Yes | Send forwarded mail |
 | `TO_EMAIL_ADDRESS` | Yes | Destination for forwarded mail |
 | `NOTION_API_KEY` | Yes | Notion integration for receipt flow |
-| `RECEIPT_AUTHORIZED_SENDER` | Optional | Sender allowed for receipt processing (default: `ychian@gmail.com`) |
+| `RECEIPT_AUTHORIZED_SENDER` | Optional | Sender allowed for receipt processing |
 | `NOTION_EXPENSES_DATABASE_ID` | Optional | Override default Expenses database |
 | `NOTION_WALLET_DATABASE_ID` | Optional | Override default Wallet database |
 | `NOTION_DAILY_EXPENSE_DATABASE_ID` | Optional | Override default Daily Expense database |
@@ -156,7 +156,7 @@ Example curl for a receipt (simplified):
 
 ```bash
 curl -X POST http://localhost:3000/api/email2email \
-  -F 'from=You <ychian@gmail.com>' \
+  -F 'from=Authorized Sender <authorized-sender@example.com>' \
   -F 'to=receipt@littleplan.com' \
   -F 'subject=BOC Transaction' \
   -F 'text=Card Account Number Ending with: 1110
