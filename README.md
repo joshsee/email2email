@@ -3,7 +3,7 @@
 A Vercel serverless webhook that receives inbound email from [SendGrid Inbound Parse](https://docs.sendgrid.com/for-developers/parsing-email/setting-up-the-inbound-parse-webhook) and does one of two things:
 
 1. **Forward** most mail to another inbox via SendGrid.
-2. **Parse BOC receipt emails** sent to `receipt@littleplan.com` and create rows in a Notion **Expenses** database.
+2. **Parse BOC receipt emails** sent to `receipt@your-domain.com` and create rows in a Notion **Expenses** database.
 
 Receipt emails are never forwarded. They are written to Notion only.
 
@@ -13,7 +13,7 @@ Receipt emails are never forwarded. They are written to Notion only.
 flowchart TD
     sg[SendGrid Inbound Parse] --> api["/api/email2email"]
     api --> check{To address?}
-    check -->|"receipt@littleplan.com"| auth{From authorized sender?}
+    check -->|"receipt@your-domain.com"| auth{From authorized sender?}
     auth -->|no| deny[403 Unauthorized]
     auth -->|yes| notion["Parse receipt, create Notion expense"]
     check -->|other| forward["Forward via SendGrid"]
@@ -21,7 +21,7 @@ flowchart TD
 
 ### Receipt processing
 
-When an email arrives at **`receipt@littleplan.com`** from the authorized sender (set via `RECEIPT_AUTHORIZED_SENDER`):
+When an email arrives at your configured **`RECEIPT_EMAIL`** from the authorized sender (`RECEIPT_AUTHORIZED_SENDER`):
 
 1. Parse the email body (BOC credit card or BoC Pay+ format)
 2. Rename the merchant and set Category when a rule matches
@@ -87,7 +87,14 @@ https://<your-vercel-domain>/api/email2email
 
 ### 2. Configure SendGrid Inbound Parse
 
-In SendGrid, point your inbound parse webhook at the URL above for the domain(s) you receive mail on (e.g. `littleplan.com`).
+In SendGrid, point your inbound parse webhook at the URL above for the domain(s) you receive mail on (e.g. `your-domain.com`).
+
+Set these in Vercel (no code defaults — receipt processing is disabled until both are set):
+
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `RECEIPT_EMAIL` | `receipt@your-domain.com` | Must match the SendGrid inbound parse address for receipt mail |
+| `RECEIPT_AUTHORIZED_SENDER` | `you@example.com` | Only this sender may trigger BOC receipt parsing |
 
 ### 3. Notion integration
 
@@ -98,9 +105,9 @@ In SendGrid, point your inbound parse webhook at the URL above for the domain(s)
    - Category
    - Daily Expense
    - Monthly Expense
-3. Copy the integration secret into `NOTION_API_KEY`
+3. Copy the integration secret and your database/page IDs into Vercel env vars (see table below). Find IDs in each Notion database or page URL.
 
-Database IDs are preconfigured in the code and can be overridden with environment variables (see below).
+All Notion database and category IDs are required via environment variables (see table below).
 
 ### 4. Environment variables
 
@@ -111,23 +118,28 @@ Copy [`.env.example`](.env.example) and set values in Vercel (Production and Pre
 | `SENDGRID_API_KEY` | Yes | Send forwarded mail |
 | `TO_EMAIL_ADDRESS` | Yes | Destination for forwarded mail |
 | `NOTION_API_KEY` | Yes | Notion integration for receipt flow |
-| `RECEIPT_AUTHORIZED_SENDER` | Optional | Sender allowed for receipt processing |
-| `NOTION_EXPENSES_DATABASE_ID` | Optional | Override default Expenses database |
-| `NOTION_WALLET_DATABASE_ID` | Optional | Override default Wallet database |
-| `NOTION_DAILY_EXPENSE_DATABASE_ID` | Optional | Override default Daily Expense database |
-| `NOTION_MONTHLY_EXPENSE_DATABASE_ID` | Optional | Override default Monthly Expense database |
+| `RECEIPT_EMAIL` | Yes | Inbound address for BOC receipt processing (must match SendGrid parse setting) |
+| `RECEIPT_AUTHORIZED_SENDER` | Yes | Sender allowed for receipt processing (no code default) |
+| `NOTION_EXPENSES_DATABASE_ID` | Yes | Expenses database ID |
+| `NOTION_WALLET_DATABASE_ID` | Yes | Wallet database ID |
+| `NOTION_DAILY_EXPENSE_DATABASE_ID` | Yes | Daily Expense database ID |
+| `NOTION_MONTHLY_EXPENSE_DATABASE_ID` | Yes | Monthly Expense database ID |
+| `NOTION_CATEGORY_SPORTS_ID` | Optional | Category page ID for Sports merchants |
+| `NOTION_CATEGORY_GROCERY_ID` | Optional | Category page ID for Grocery merchants |
+| `NOTION_CATEGORY_TRANSPORT_ID` | Optional | Category page ID for Transport merchants |
+| `NOTION_CATEGORY_SHOPPING_ID` | Optional | Category page ID for Shopping merchants |
 
 ## Usage
 
 ### Forwarding email
 
-Send or forward any email to your configured inbound address **except** `receipt@littleplan.com`. It will be relayed to `TO_EMAIL_ADDRESS` with the original body and attachments.
+Send or forward any email to your configured inbound address **except** your `RECEIPT_EMAIL` address. It will be relayed to `TO_EMAIL_ADDRESS` with the original body and attachments.
 
 Spam from certain TLDs is dropped silently.
 
 ### Logging BOC receipts
 
-Forward a BOC transaction notification to **`receipt@littleplan.com`** from the authorized sender address. The app creates a Notion Expense row and returns JSON:
+Forward a BOC transaction notification to your **`RECEIPT_EMAIL`** address from the authorized sender. The app creates a Notion Expense row and returns JSON:
 
 ```json
 { "status": "created", "pageId": "...", "name": "Citybus", "date": "2026-06-21", "amountHkd": 4.4 }
@@ -157,7 +169,7 @@ Example curl for a receipt (simplified):
 ```bash
 curl -X POST http://localhost:3000/api/email2email \
   -F 'from=Authorized Sender <authorized-sender@example.com>' \
-  -F 'to=receipt@littleplan.com' \
+  -F 'to=receipt@your-domain.com' \
   -F 'subject=BOC Transaction' \
   -F 'text=Card Account Number Ending with: 1110
 Transaction Date: 23/06
