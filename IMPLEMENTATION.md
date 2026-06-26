@@ -38,10 +38,10 @@ SendGrid Inbound Parse
                 │
                 ├── from ≠ RECEIPT_AUTHORIZED_SENDER ──► 403 Unauthorized
                 │
-                ├── parse email body (credit card or Pay+ format)
+                ├── parse email body (credit card, Pay+, or Direct Debit format)
                 ├── apply merchant rename + category rules (card-specific bypasses apply)
                 ├── resolve amounts (HKD direct, or FX conversion)
-                ├── lookup Wallet (card last 4, or BoC Pay for Pay+)
+                ├── lookup Wallet (card last 4; BoC Pay for Pay+; Cash for Direct Debit)
                 ├── find/create Daily + Monthly Expense pages
                 ├── deduplicate, then create Notion Expense row (with icon)
                 └── return JSON { status: "created" | "duplicate" }
@@ -77,6 +77,27 @@ Amount : HKD 4.40
 - Date is full `YYYY/MM/DD` — no year inference.
 - Amount pattern: `HKD 4.40` (space between currency and value).
 - Wallet lookup uses the Notion wallet named **`BoC Pay`** (not card last 4).
+
+### Format C — Direct Debit notification
+
+Detected when the body contains `Direct Debit`:
+
+```
+Notice of Direct Debit transaction
+Transaction Type: Direct Debit
+Transaction Date: 2026/06/25
+Payee's A/C No: 001..001
+Payee: CLP POWER HK LTD
+Withdrawal A/C No.: 011..666
+Amount: HKD 121.00
+Debtor's Reference: ...9256
+```
+
+- Date is full `YYYY/MM/DD` — no year inference.
+- Merchant comes from the `Payee:` line (the `^Payee:` anchor avoids matching `Payee's A/C No:`).
+- Amount pattern: `HKD 121.00` (space between currency and value).
+- No card number; wallet lookup uses the Notion wallet named **`Cash`**.
+- `Debtor's Reference` is captured as `referenceNo` (not yet used for dedup).
 
 ### Foreign currency (Format A)
 
@@ -130,6 +151,7 @@ Copy category page IDs from each Category row URL (`.../{page_id}`).
 |---|---|
 | Credit card | Notion Wallet `Name` **ends with** ` - {cardLast4}` (e.g. `Go R - 1110`) |
 | BoC Pay+ | Exact wallet name **`BoC Pay`** |
+| Direct Debit | Exact wallet name **`Cash`** |
 
 ### Notion API (SDK v5)
 
@@ -152,6 +174,7 @@ New pages get a Notion native icon at create time (`lib/expenseIcon.js`):
 | Citybus / Transport | bus |
 | MTR | train |
 | Taobao / Shopping | shopping-bag |
+| CLP - Monaco / Bills & Utilities | zap |
 | Unknown merchants | credit-card |
 | Daily Expense (new) | calendar-day |
 | Monthly Expense (new) | calendar |
@@ -169,6 +192,7 @@ Keyword matching is **case-insensitive substring**. First matching rule wins.
 | `CITYBUS` | Citybus | Transport |
 | `MTR` | MTR | Transport |
 | `TAOBAO` | Taobao | Shopping |
+| `CLP POWER` | CLP - Monaco | Bills & Utilities |
 
 Category page IDs come from `NOTION_CATEGORY_*_ID` environment variables. Unmatched merchants keep the raw name and leave Category blank.
 
@@ -239,6 +263,7 @@ See [`.env.example`](.env.example).
 | `NOTION_CATEGORY_GROCERY_ID` | Optional | Category page ID for Grocery merchants |
 | `NOTION_CATEGORY_TRANSPORT_ID` | Optional | Category page ID for Transport merchants |
 | `NOTION_CATEGORY_SHOPPING_ID` | Optional | Category page ID for Shopping merchants |
+| `NOTION_CATEGORY_BILLS_ID` | Optional | Category page ID for Bills & Utilities merchants |
 | `SENDGRID_API_KEY` | Yes (non-receipt mail) | Existing forward behaviour |
 | `TO_EMAIL_ADDRESS` | Yes (non-receipt mail) | Existing forward destination |
 
@@ -265,7 +290,7 @@ See [`.env.example`](.env.example).
 
 | File | Purpose |
 |---|---|
-| `lib/parseBocTransaction.js` | Parse credit card and Pay+ email formats |
+| `lib/parseBocTransaction.js` | Parse credit card, Pay+, and Direct Debit email formats |
 | `lib/merchantRules.js` | Merchant rename + Category mapping |
 | `lib/exchangeRate.js` | Frankfurter FX lookup and HKD conversion |
 | `lib/notionExpense.js` | Notion API: wallet lookup, period pages, expense create, dedup, icons |
@@ -318,15 +343,16 @@ See [`.env.example`](.env.example).
 npm test
 ```
 
-11 tests in `lib/receipt.test.js` cover:
+13 tests in `lib/receipt.test.js` cover:
 
 - Credit card HKD and CNY parsing
 - BoC Pay+ parsing
-- Merchant rules (ParkNShop, Taobao, Citybus)
+- Direct Debit parsing
+- Merchant rules (ParkNShop, Taobao, Citybus, CLP POWER)
 - Card `1110` exact-merchant bypass
 - Exchange rate text formatting
 - Monthly expense name generation
-- Pay+ vs credit card wallet routing
+- Pay+ / Direct Debit / credit card wallet routing
 - Receipt sender authorization
 - Expense icon resolution
 
@@ -360,6 +386,7 @@ Requires `NOTION_API_KEY` and database access configured locally.
 | FX source | Frankfurter API | Free, no API key, supports historical dates |
 | Pay+ vs credit card detection | Try Pay+ first | More specific markers reduce false matches |
 | Pay+ wallet lookup | Exact name `BoC Pay` | Pay+ is a separate wallet, not card-suffix matched |
+| Direct Debit wallet lookup | Exact name `Cash` | No card number on direct debit; tracked as cash per user |
 | Receipt security | Authorized sender only | Prevent arbitrary inbound receipt processing |
 | Card `1110` merchants | Exact name, no rules | Per-user preference for one card |
 | Notion SDK | v5 / API 2025-09-03 | `dataSources` API required for query/create |
