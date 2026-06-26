@@ -23,7 +23,7 @@ flowchart TD
 
 When an email arrives at your configured **`RECEIPT_EMAIL`** from the authorized sender (`RECEIPT_AUTHORIZED_SENDER`):
 
-1. Parse the email body (BOC credit card or BoC Pay+ format)
+1. Parse the email body (BOC credit card, BoC Pay+, or Direct Debit format)
 2. Rename the merchant and set Category when a rule matches
 3. Convert foreign currency to HKD using the [Frankfurter API](https://www.frankfurter.app/) (transaction date)
 4. Resolve the Wallet relation
@@ -50,6 +50,16 @@ Merchant : MT CITYBUS
 Amount : HKD 4.40
 ```
 
+**Direct Debit**
+
+```
+Notice of Direct Debit transaction
+Transaction Type: Direct Debit
+Transaction Date: 2026/06/25
+Payee: CLP POWER HK LTD
+Amount: HKD 121.00
+```
+
 Foreign currencies supported: HKD, CNY/CNH, USD, MYR, SGD.
 
 ### Merchant rules
@@ -63,6 +73,7 @@ Keyword matching is case-insensitive. First match wins.
 | `CITYBUS` | Citybus | Transport |
 | `MTR` | MTR | Transport |
 | `TAOBAO` | Taobao | Shopping |
+| `CLP POWER` | CLP - Monaco | Bills & Utilities |
 
 Edit `lib/merchantRules.js` to add more rules.
 
@@ -72,6 +83,7 @@ Edit `lib/merchantRules.js` to add more rules.
 |------------|-------------------|
 | Credit card | Notion Wallet name ending with ` - {last4}` (e.g. `Go R - 1110`) |
 | BoC Pay+ | Exact name `BoC Pay` |
+| Direct Debit | Exact name `Cash` |
 
 ## Setup
 
@@ -128,6 +140,7 @@ Copy [`.env.example`](.env.example) and set values in Vercel (Production and Pre
 | `NOTION_CATEGORY_GROCERY_ID` | Optional | Category page ID for Grocery merchants |
 | `NOTION_CATEGORY_TRANSPORT_ID` | Optional | Category page ID for Transport merchants |
 | `NOTION_CATEGORY_SHOPPING_ID` | Optional | Category page ID for Shopping merchants |
+| `NOTION_CATEGORY_BILLS_ID` | Optional | Category page ID for Bills & Utilities merchants |
 
 ## Usage
 
