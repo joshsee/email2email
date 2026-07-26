@@ -39,7 +39,7 @@ SendGrid Inbound Parse
                 ├── from ≠ RECEIPT_AUTHORIZED_SENDER ──► 403 Unauthorized
                 │
                 ├── parse email body (credit card, Pay+, or Direct Debit format)
-                ├── apply merchant rename + category rules (card-specific bypasses apply)
+                ├── apply merchant rename + category rules (all cards)
                 ├── resolve amounts (HKD direct, or FX conversion)
                 ├── lookup Wallet (card last 4; BoC Pay for Pay+; Cash for Direct Debit)
                 ├── find/create Daily + Monthly Expense pages
@@ -165,19 +165,28 @@ Implemented in `lib/notionExpense.js`.
 
 ### Page icons
 
-New pages get a Notion native icon at create time (`lib/expenseIcon.js`):
+New pages get a Notion native icon at create time (`lib/expenseIcon.js`). Icon
+names are chosen to match the icons already used in the Expense Journal:
 
 | Target | Icon |
 |---|---|
-| Gym - LCSD / Sports | dumbbell |
+| Gym - LCSD / Sports | basketball |
 | ParkNShop / Grocery | banana |
 | Citybus / Transport | bus |
-| MTR | train |
+| MTR | train-metro |
 | Taobao / Shopping | shopping-bag |
 | CLP - Monaco / Bills & Utilities | zap |
 | Unknown merchants | credit-card |
 | Daily Expense (new) | calendar-day |
 | Monthly Expense (new) | calendar |
+
+**Icon colour** — the expense row's icon colour is matched to the **Wallet's**
+own Notion icon colour (e.g. `Go R - 1110` uses a blue `credit-card`, so its
+expenses get a blue icon; `Cash` is green, etc.). The colour is read from the
+wallet page at create time via `getWalletIconColor()`. Valid Notion icon colours
+are `gray, lightgray, brown, yellow, orange, green, blue, purple, pink, red`;
+anything else (including wallets with a custom image/emoji icon such as `BoC Pay`)
+falls back to `gray`. Daily/Monthly period pages keep the default gray icon.
 
 ---
 
@@ -196,12 +205,14 @@ Keyword matching is **case-insensitive substring**. First matching rule wins.
 
 Category page IDs come from `NOTION_CATEGORY_*_ID` environment variables. Unmatched merchants keep the raw name and leave Category blank.
 
+Rules apply to **all cards**, so e.g. a `MT MTR Corporation L` charge on any card is renamed to `MTR` and categorised as Transport.
+
 ### Card-specific bypass
 
-Cards listed in `EXACT_MERCHANT_CARD_LAST4` (currently **`1110`**) skip rename and category rules entirely. The raw merchant name from the email is used and Category is left blank.
+`EXACT_MERCHANT_CARD_LAST4` is a set of card last-4 digits that skip rename and category rules entirely (raw merchant name, Category left blank). It is **currently empty** — card `1110` was removed so its MTR/other keyword charges are renamed like every other card.
 
 To add a new merchant: edit the `RULES` array in `lib/merchantRules.js`.  
-To add a card bypass: add the last 4 digits to `EXACT_MERCHANT_CARD_LAST4` in the same file.
+To bypass rules for a specific card again: add its last 4 digits to `EXACT_MERCHANT_CARD_LAST4` in the same file.
 
 ---
 
@@ -343,18 +354,18 @@ See [`.env.example`](.env.example).
 npm test
 ```
 
-13 tests in `lib/receipt.test.js` cover:
+Tests in `lib/receipt.test.js` cover:
 
 - Credit card HKD and CNY parsing
 - BoC Pay+ parsing
 - Direct Debit parsing
 - Merchant rules (ParkNShop, Taobao, Citybus, CLP POWER)
-- Card `1110` exact-merchant bypass
+- Merchant keyword rules applying to every card, incl. card `1110` (MTR)
 - Exchange rate text formatting
 - Monthly expense name generation
 - Pay+ / Direct Debit / credit card wallet routing
 - Receipt sender authorization
-- Expense icon resolution
+- Expense icon resolution and wallet-matched icon colour
 
 6 tests in `api/email2email.test.js` cover existing email forward/parse behaviour.
 
@@ -388,7 +399,8 @@ Requires `NOTION_API_KEY` and database access configured locally.
 | Pay+ wallet lookup | Exact name `BoC Pay` | Pay+ is a separate wallet, not card-suffix matched |
 | Direct Debit wallet lookup | Exact name `Cash` | No card number on direct debit; tracked as cash per user |
 | Receipt security | Authorized sender only | Prevent arbitrary inbound receipt processing |
-| Card `1110` merchants | Exact name, no rules | Per-user preference for one card |
+| Card `1110` merchants | Rules now apply (bypass removed) | User wants keyword renames (e.g. MTR) on this card |
+| Expense icon colour | Match the Wallet's icon colour | Visual link between expense and payment method |
 | Notion SDK | v5 / API 2025-09-03 | `dataSources` API required for query/create |
 | Page icons | Native Notion icons on create | Visual consistency in Expense Journal |
 | Dedup key | Name + Date + amount (foreign field if applicable) | Avoids duplicates on SendGrid retry |
