@@ -240,8 +240,10 @@ Set both in Vercel (Production and Preview) before deploying the receipt flow. S
 
 Before creating a Notion row, the app queries for an existing expense with the same:
 
-- **HKD transactions:** `Name` + `Date` + `Amount`
-- **Foreign currency:** `Name` + `Date` + foreign amount field (e.g. `Amount CNY`)
+- **HKD transactions:** `Name` + `Date` + `Amount` + `Wallet`
+- **Foreign currency:** `Name` + `Date` + foreign amount field (e.g. `Amount CNY`) + `Wallet`
+
+Same merchant/date/amount on a different wallet (e.g. Union Pay vs `Go R - 1110`) is treated as a new entry.
 
 If found, returns `{ status: "duplicate", pageId }` with HTTP 200 (safe for SendGrid retries).
 
@@ -403,7 +405,7 @@ Requires `NOTION_API_KEY` and database access configured locally.
 | Expense icon colour | Match the Wallet's icon colour | Visual link between expense and payment method |
 | Notion SDK | v5 / API 2025-09-03 | `dataSources` API required for query/create |
 | Page icons | Native Notion icons on create | Visual consistency in Expense Journal |
-| Dedup key | Name + Date + amount (foreign field if applicable) | Avoids duplicates on SendGrid retry |
+| Dedup key | Name + Date + Wallet + amount (foreign field if applicable) | Same amount on a different wallet is a new entry; still safe on SendGrid retry |
 
 ---
 
