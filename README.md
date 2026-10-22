@@ -28,7 +28,7 @@ When an email arrives at your configured **`RECEIPT_EMAIL`** from the authorized
 3. Convert foreign currency to HKD using the [Frankfurter API](https://www.frankfurter.app/) (transaction date)
 4. Resolve the Wallet relation
 5. Find or create Daily / Monthly Expense pages for the transaction date
-6. Deduplicate, then create a new Expense row with a matching page icon
+6. Deduplicate (same Name + Date + Amount + Wallet), then create a new Expense row with a matching page icon
 
 Supported BOC email formats:
 

@@ -6,10 +6,10 @@
   "dependencies": {
     "@notionhq/client": "^5.22.0",
     "@sendgrid/mail": "^8.1.6",
-    "axios": "^1.6.0",
+    "axios": "^1.20.0",
     "busboy": "^1.6.0",
     "email-addresses": "^3.1.0",
-    "mailparser": "^3.9.14",
+    "mailparser": "^3.9.32",
     "util": "^0.12.3"
   },
   "scripts": {
